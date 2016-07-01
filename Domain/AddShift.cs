@@ -1,8 +1,9 @@
-﻿using System;
+﻿using amita.primitives.net;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Service
+namespace Domain
 {
 
     /*
@@ -109,16 +110,16 @@ namespace Service
                      title:
                         request
                          .attributes
-                         .value_of("NewShiftRequest", "title", () => new AttributeCoundNotBeDeterminedInRequest())
-                         .bind(val => Results.ToString(val, () => new AttributeCoundNotBeConvertedToString()))
-
-                //, duration_in_seconds:
+                         .value_for("title", () => new AttributeCoundNotBeDeterminedInRequest())
+                         .bind(val => Result<string>.success(val))
+                     //,
+                //duration_in_seconds:
                 //    request
                 //     .attributes
-                //     .value_of("NewShiftRequest", "duration_in_seconds", () => new AttributeCoundNotBeDeterminedInRequest())
+                //     .value_for("duration_in_seconds", () => new AttributeCoundNotBeDeterminedInRequest())
                 //     // Q. Can I add a convert method that has the same signature as verify? 
                 //     .bind(duration => Results.ToInt(duration, () => new AttributeCoundNotBeConvertedToInt()))
-                //     .verify(ClockTimes.SecondsAreWithinTwentyfourHourClock, () => new OutsideTwentyFourHourClockRange())
+                     //.verify(ClockTimes.SecondsAreWithinTwentyfourHourClock, () => new OutsideTwentyFourHourClockRange())
 
                 //, employee_names:
                 //    request
@@ -170,7 +171,7 @@ namespace Service
             var errors = new List<ResultError>();
 
             var title = string.Empty;
-            //var duration_in_seconds = -1;
+            var duration_in_seconds = -1;
 
             request
                 .title
@@ -179,12 +180,12 @@ namespace Service
                     error: errs => errors.Add(new AttributeError("AddShiftCommand", "title", errs))
                  );
 
-            //request
-            //    .duration_in_seconds
-            //    .match(
-            //        success: d => duration_in_seconds = d,
-            //        error: errs => errors.Add(new AttributeError("AddShiftCommand", "duration_in_seconds", errs))
-            //    );
+            request
+                .day
+                .match(
+                    success: d => duration_in_seconds = d,
+                    error: errs => errors.Add(new AttributeError("AddShiftCommand", "duration_in_seconds", errs))
+                );
 
 
             return !errors.Any()
@@ -197,15 +198,19 @@ namespace Service
         private static Result<CommandResult> add_shift
                                               (CommandContext context)
         {
+            var old_date = context.employee_schedules().start_date.date;
 
+            var new_date_as_date_time = new DateTime(old_date.year, old_date.month, old_date.day).AddDays(1);
 
-            var new_count = context.employee_schedules().count + 1;
+            var summary = context.command.summary;
 
             return
                 Result<CommandResult>
                 .success(
                     new CommandResult(context.employee_schedules
-                                        , () => new EmployeeSchedules(new_count)
+                                        , () => new EmployeeScheduleStartDate(
+                                                    new domain.Day(summary, new time.Date(new_date_as_date_time), Enumerable.Empty<domain.DiaryEntry>())
+                                                )
                                     )
                         );
 
@@ -214,14 +219,14 @@ namespace Service
         private class ValidationResult
         {
 
-            public Func<EmployeeSchedules> employee_schedules { get; private set; }
+            public Func<EmployeeScheduleStartDate> employee_schedules { get; private set; }
 
             public Request request { get; private set; }
 
             public IEnumerable<ResultError> errors { get; private set; }
 
             public ValidationResult
-                    (Func<EmployeeSchedules> employee_schedules
+                    (Func<EmployeeScheduleStartDate> employee_schedules
                     , Request request
                     , IEnumerable<ResultError> errors)
             {
@@ -239,7 +244,7 @@ namespace Service
 
             public Result<string> title { get; private set; }
 
-            //public Result<int> duration_in_seconds { get; private set; }
+           public Result<int> day { get; private set; }
 
             //public Result<IEnumerable<string>> employee_names { get; private set; }
 
@@ -247,14 +252,14 @@ namespace Service
 
 
             public Request
-                    (Result<string> title
-                     //, Result<int> duration_in_seconds
+                    (Result<string> title//,
+                      //Result<int> day
                      //, Result<IEnumerable<string>> employee_names
                      //, Result<Date> date
                      )
             {
                 this.title = title;
-                //this.duration_in_seconds = duration_in_seconds;
+                this.day = day;
                 //this.employee_names = employee_names;
                 //this.date = date;
             }
@@ -264,30 +269,30 @@ namespace Service
         private class Command
         {
 
-            public string title { get; private set; }
+            public string summary { get; private set; }
 
-            //public int duration_in_seconds { get; private set; }
+            //public int day { get; private set; }
 
             public Command
-                    (string title
-                    //, int duration_in_seconds
+                    (string summary
+                     //int day
                     )
             {
 
-                this.title = title;
-                //this.duration_in_seconds = duration_in_seconds;
+                this.summary = summary;
+                //this.day = day;
             }
         }
 
         private class CommandContext
         {
 
-            public Func<EmployeeSchedules> employee_schedules { get; private set; }
+            public Func<EmployeeScheduleStartDate> employee_schedules { get; private set; }
 
             public Command command { get; private set; }
 
             public CommandContext
-                    (Func<EmployeeSchedules> employee_schedules
+                    (Func<EmployeeScheduleStartDate> employee_schedules
                     , Command command)
             {
 
@@ -299,14 +304,14 @@ namespace Service
         private class CommandResult
         {
 
-            public Func<EmployeeSchedules> world { get; private set; }
+            public Func<EmployeeScheduleStartDate> world { get; private set; }
 
-            public Func<EmployeeSchedules> new_world { get; private set; }
+            public Func<EmployeeScheduleStartDate> new_world { get; private set; }
 
 
             public CommandResult
-                    (Func<EmployeeSchedules> world
-                    , Func<EmployeeSchedules> new_world)
+                    (Func<EmployeeScheduleStartDate> world
+                    , Func<EmployeeScheduleStartDate> new_world)
             {
 
                 this.world = world;

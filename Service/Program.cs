@@ -2,10 +2,10 @@
 using Microsoft.Owin.Hosting;
 using Owin;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AmitaAttribute = amita.primitives.net.Attribute;
 
 namespace Service
 {
@@ -13,39 +13,17 @@ namespace Service
     {
         private const string Url = "http://localhost:8080/";
 
-        private static ConcurrentQueue<ServiceRequest> request_queue = new ConcurrentQueue<ServiceRequest>();
-
-        private static ConcurrentQueue<ServiceResponse> response_queue = new ConcurrentQueue<ServiceResponse>();
-
-        private static EmployeeSchedules world = new EmployeeSchedules(0);
+        private static SequentialService sequential_service = new SequentialService();
+        
 
         public static void Main()
         {
-            Task.Run(() =>
-            {
-                init_service_layer();
-            });
-
             using (WebApp.Start(Url, ConfigureApplication))
             {
                 Console.WriteLine("Listening at {0}", Url);
 
                 Console.ReadLine();
             }
-        }
-
-        private static void init_service_layer()
-        {
-            do
-            {
-                ServiceRequest request;
-                if (request_queue.TryDequeue(out request))
-                {
-                    var resp = Addshift.apply(request);
-                    world = resp.adjusted_employee_schedules();
-                    response_queue.Enqueue(resp);
-                }
-            } while (true);
         }
 
         private static void ConfigureApplication(IAppBuilder app)
@@ -70,7 +48,7 @@ namespace Service
 
                 return Task.Run(async () =>
                 {
-                    var a = await controller(await build_request_attributes(context));
+                    var a = await new ServiceController(sequential_service).request(await build_request_attributes(context));
 
                     return context.Response.WriteAsync(a);
                 });
@@ -78,53 +56,32 @@ namespace Service
             });
         }
 
-        private static async Task<IEnumerable<RequestAttribute>> build_request_attributes(IOwinContext context)
+        private static async Task<IEnumerable<AmitaAttribute>> build_request_attributes(IOwinContext context)
         {
-            var formData = await context.Request.ReadFormAsync();
-            //formData.First().
+            //var formData = await context.Request.ReadFormAsync();
+            //formData.First()
 
             return
                 context.Request.Query
-                .Select(i => new RequestAttribute("NewShiftRequest", i.Key, determine_value_type(i.Value)));
-
+                .Select(convert_to_attribute);
         }
 
-        private static IAttributeValue determine_value_type(string[] request_params)
+        private static AmitaAttribute convert_to_attribute(KeyValuePair<string, string[]> key_value)
         {
-            if (request_params.Length == 0)
+            if (key_value.Value.Length == 0)
             {
-                return new ASimpleValue("");
+                return AmitaAttribute.create_value(key_value.Key, "");
             }
 
-            if (request_params.Length == 1)
+            if (key_value.Value.Length == 1)
             {
-                return new ASimpleValue(request_params[0]);
+                return AmitaAttribute.create_value(key_value.Key, key_value.Value[0]);
             }
 
-            return new ACollectionValue(request_params.Select(rp => new ASimpleValue(rp)));
+            return AmitaAttribute
+                .create_collection(key_value.Key, 
+                                    key_value.Value
+                                                .Select((v, i) => AmitaAttribute.create_value(i.ToString(), v)));
         }
-
-        private static async Task<string> controller(IEnumerable<RequestAttribute> request_attributes)
-        {
-            request_queue.Enqueue(new ServiceRequest(request_attributes, () => world, Enumerable.Empty<Permission>()));
-            return await Task.FromResult(service_layer());
-        }
-
-
-        private static string service_layer()
-        {
-            //elapsed time
-            ServiceResponse resp;
-            bool did_remove = false;
-            do
-            {
-
-                did_remove = response_queue.TryDequeue(out resp);
-            } while (!did_remove);//&& elapsed time > some threshold
-
-            return resp.adjusted_employee_schedules().count.ToString();
-        }
-
-
     }
 }
