@@ -72,9 +72,9 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <Compile Include="AddShift.cs" />
-    <Compile Include="CodeTimer.cs" />
-    <Compile Include="SafelyExecute.cs" />
+    <Compile Include="Helpers\AddShift.cs" />
+    <Compile Include="Helpers\CodeTimer.cs" />
+    <Compile Include="Helpers\SafelyExecute.cs" />
     <Compile Include="ContinuousServiceTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="EFTests.cs" />
