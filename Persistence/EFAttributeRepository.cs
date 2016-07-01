@@ -12,7 +12,7 @@ namespace Persistence
         
         public IQueryable<EFAttribute> Entities { get { return context.Atributes; } }
 
-        /// <inheritdoc/>
+
         public void add(EFAttribute entity)
         {
             context.Atributes.Add(entity);

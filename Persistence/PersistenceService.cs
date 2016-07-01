@@ -5,10 +5,12 @@ namespace Persistence
 {
     public class PersistenceService
     {
-        public void persist(ServiceResponse response)
+        public void persist(EmployeeScheduleStartDate source)
         {
             // model
-            var day = response.adjusted_employee_schedules().start_date;
+            var day = source.start_date;
+
+            repository.remove_all();//This is important because we have no Entity IDs yet
 
             // serialise and persist
             foreach(var attr in serialise.Day.create_memento(day))

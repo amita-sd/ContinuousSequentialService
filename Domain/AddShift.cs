@@ -171,7 +171,7 @@ namespace Domain
             var errors = new List<ResultError>();
 
             var title = string.Empty;
-            var duration_in_seconds = -1;
+            //var duration_in_seconds = -1;
 
             request
                 .title
@@ -180,12 +180,12 @@ namespace Domain
                     error: errs => errors.Add(new AttributeError("AddShiftCommand", "title", errs))
                  );
 
-            request
-                .day
-                .match(
-                    success: d => duration_in_seconds = d,
-                    error: errs => errors.Add(new AttributeError("AddShiftCommand", "duration_in_seconds", errs))
-                );
+            //request
+            //    .day
+            //    .match(
+            //        success: d => duration_in_seconds = d,
+            //        error: errs => errors.Add(new AttributeError("AddShiftCommand", "duration_in_seconds", errs))
+            //    );
 
 
             return !errors.Any()

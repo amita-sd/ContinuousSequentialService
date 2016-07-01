@@ -46,12 +46,19 @@ namespace Service
                     return context.Response.WriteAsync("404");
                 }
 
-                return Task.Run(async () =>
+                try
                 {
-                    var a = await new ServiceController(sequential_service).request(await build_request_attributes(context));
+                    return Task.Run(async () =>
+                    {
+                        var a = await new ServiceController(sequential_service).request(await build_request_attributes(context));
 
-                    return context.Response.WriteAsync(a);
-                });
+                        return context.Response.WriteAsync(a);
+                    });
+                }
+                catch(Exception e)
+                {
+                    return context.Response.WriteAsync("500");
+                }
 
             });
         }

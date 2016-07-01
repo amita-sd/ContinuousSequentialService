@@ -15,7 +15,7 @@ namespace Persistence
 
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
-        {            
+        {
 
             modelBuilder
                 .Entity<CollectionEFAttribute>()

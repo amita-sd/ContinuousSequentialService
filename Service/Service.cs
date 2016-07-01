@@ -30,7 +30,7 @@ namespace Service
             } while (!did_remove);//&& elapsed time > some threshold
 
             //persist
-            persistence_service.persist(resp);
+            persistence_service.persist(resp.adjusted_employee_schedules());
 
             return resp.adjusted_employee_schedules().ToString();
         }
